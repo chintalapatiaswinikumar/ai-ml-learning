@@ -3,13 +3,16 @@ import numpy as np
 from torch import tensor as t
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error
 
 df = pd.read_csv('housing.csv')
 # data = t(df.values)
 # print(data)
 df.head()
+df.fillna(0,inplace=True)
 df.info()
-df.fillna(0,inplace=True)   
 df.describe()
 df.isnull().sum()
 
@@ -34,38 +37,47 @@ df.isnull().sum()
 # Try Gradient Boosting, XGBoost, or adjust parameters like n_estimators, learning_rate, etc.
 
 
- #creates a histogram
-# for col in df.columns:
-#     plt.figure(figsize=(10,8))
-#     plt.hist(df[col],bins=20)
-#     plt.xlabel(f"{col}")
-#     plt.ylabel(f"Count")
-#     plt.title(f"Histogram for {col}")
-#     plt.savefig(f"casestudy california/{col}")
+#Step 1:
+#Inputs
+x = df.drop("median_house_value",axis =1) # we are dropping this column so that model wont know the value it is going to predict before hand
+x = pd.get_dummies(x, columns=['ocean_proximity'], drop_first=True) 
+#Output
+y = df['median_house_value'] # and training the model with its values on traning dataset
 
-#creates scatter plot
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.2,train_size=0.8,random_state=42)
 
-# plt.figure(figsize=(10,8))
-# df = df.groupby(["median_income"])['median_house_value'].mean()
-# plt.plot(df.index,df.values,marker='o')
-# plt.grid(True)
-# plt.xlabel("median_income")
-# plt.ylabel("median_house_value")
-# plt.title("Scatter plot b/w Median house value and income")
+print("train data",x_train.shape,y_train.shape)
+print("test data",x_test.shape,y_test.shape)
 
-# avg_house_value_by_age = df.groupby('housing_median_age')['median_house_value'].mean()
+rf = RandomForestRegressor(n_estimators=200, random_state=42)
+rf.fit(x_train, y_train)
 
-# plt.figure(figsize=(10, 6))
-# plt.plot(avg_house_value_by_age.index, avg_house_value_by_age.values, marker='o')
-# plt.title('Average Median House Value by Housing Median Age')
-# plt.xlabel('Housing Median Age')
-# plt.ylabel('Average Median House Value')
-# plt.grid(True)
-# plt.show()
+new_data = pd.DataFrame([{
+    'longitude': -122.23,
+    'latitude': 37.88,
+    'housing_median_age': 41,
+    'total_rooms': 880,
+    'total_bedrooms': 129,
+    'population': 322,
+    'households': 126,
+    'median_income': 8.3252,
+    'ocean_proximity_INLAND': 0,
+    'ocean_proximity_ISLAND':0,
+    'ocean_proximity_NEAR BAY': 0,
+    'ocean_proximity_NEAR OCEAN': 1
+    
+}])
 
-# plt.figure(figsize=(10,8))
-# plt.scatter(df['population'],df['median_income'])
-# plt.xlabel("population")
-# plt.ylabel("median income")
-# plt.show()
+# Predict to entire test data
+y_pred = rf.predict(x_test)
 
+#Predict to my one single data point
+# y_pred = rf.predict(new_data)
+
+df1 = pd.DataFrame()
+df1["actual"] = y_test
+df1['predicted'] = y_pred 
+
+# Evaluate
+print("R² Score:", r2_score(y_test, y_pred)) # coefficient of determination which is always <1, if it is nearing to 1 then the fit is good
+print("MSE:", mean_squared_error(y_test, y_pred))  #Shows the squared component of error
