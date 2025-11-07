@@ -4,6 +4,8 @@ from torch import tensor as t
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+df = pd.read_csv('housing.csv')
+
 #creates a histogram
 for col in df.columns:
     plt.figure(figsize=(10,8))
